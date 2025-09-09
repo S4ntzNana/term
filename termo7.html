@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Technical Terms</title>
+<style>
+  body {
+    background: linear-gradient(135deg, #4a148c, #880e4f);
+    color: white;
+    font-family: 'Arial', sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    margin: 0;
+    padding: 30px 20px;
+  }
+  h1 {
+    margin-bottom: 20px;
+    font-size: 32px;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+  }
+  .board-container {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+  }
+  .board {
+    display: grid;
+    gap: 8px;
+  }
+  .row {
+    display: grid;
+    gap: 8px;
+    justify-content: center;
+  }
+  .tile {
+    width: 60px;
+    height: 60px;
+    background: #3a3a3c;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    font-weight: bold;
+    text-transform: uppercase;
+    border-radius: 8px;
+    transition: background 0.3s;
+  }
+  .correct { background: #2ecc71 !important; }
+  .present { background: #f1c40f !important; }
+  .absent { background: #555 !important; }
+  #guessInput {
+    padding: 10px;
+    font-size: 18px;
+    text-transform: uppercase;
+    border-radius: 8px;
+    border: none;
+    outline: none;
+    width: 200px;
+    text-align: center;
+    margin-top: 15px;
+  }
+  #hint {
+    margin-top: 12px;
+    font-size: 16px;
+    font-style: italic;
+    color: #ffe082;
+    text-align: center;
+    max-width: 350px;
+  }
+  #menuEnd {
+    position: fixed;
+    top:0; left:0; right:0; bottom:0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0,0,0,0.7);
+    gap: 15px;
+    display: none;
+  }
+  #menuEnd.active { display: flex; }
+  #menuEnd button {
+    padding: 12px 20px;
+    font-size: 18px;
+    background: #538d4e;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+  #menuEnd button:hover { background: #6aaa64; }
+  #menuEnd h2 { margin:0; text-align:center; }
+</style>
+</head>
+<body>
+<h1>Technical Terms</h1>
+
+<div class="board-container">
+  <div class="board" id="board"></div>
+</div>
+
+<input type="text" id="guessInput" maxlength="6" placeholder="Digite aqui" autofocus />
+<div id="hint"></div>
+
+<div id="menuEnd">
+  <h2 id="endMessage"></h2>
+  <button onclick="nextWord()">Próxima Palavra</button>
+</div>
+
+<script>
+const words = [
+  { word: "USB", hint: "Circuito paralelo universal em série (Plug and Play)." },
+  { word: "TAB", hint: "Tabular, organizar textos em colunas." },
+  { word: "SCREEN", hint: "Proteger alguma coisa com uma tela." },
+  { word: "SCROLL", hint: "Rolar a tela." },
+  { word: "SERVER", hint: "Servidor." }
+];
+
+let usedWords = []; // palavras já usadas
+let chosen, currentHint, attempts, maxAttempts=6;
+let rowIndex;
+
+const board = document.getElementById("board");
+const input = document.getElementById("guessInput");
+const hint = document.getElementById("hint");
+const menuEnd = document.getElementById("menuEnd");
+const endMessage = document.getElementById("endMessage");
+
+function initGame() {
+  // reinicia se todas palavras já foram usadas
+  if (usedWords.length === words.length) {
+    alert("Você jogou todas as palavras! Reiniciando...");
+    usedWords = [];
+  }
+
+  let availableWords = words.filter(w => !usedWords.includes(w.word));
+  chosen = availableWords[Math.floor(Math.random() * availableWords.length)];
+  usedWords.push(chosen.word);
+
+  currentHint = chosen.hint;
+  attempts = [];
+  rowIndex = 0;
+  hint.textContent = "";
+  input.disabled = false;
+  input.value = "";
+  menuEnd.classList.remove("active");
+  createBoard();
+  input.focus();
+}
+
+function createBoard() {
+  board.innerHTML = "";
+  board.style.gridTemplateRows = `repeat(${maxAttempts}, 1fr)`;
+  for(let i=0;i<maxAttempts;i++){
+    const row = document.createElement("div");
+    row.className = "row";
+    row.style.gridTemplateColumns = `repeat(${chosen.word.length}, 60px)`;
+    row.style.justifyContent = "center";
+    for(let j=0;j<chosen.word.length;j++){
+      const tile = document.createElement("div");
+      tile.className = "tile";
+      row.appendChild(tile);
+    }
+    board.appendChild(row);
+  }
+}
+
+function submitGuess() {
+  let guess = input.value.toUpperCase().trim();
+  if(guess.length!==chosen.word.length){ alert(`A palavra tem ${chosen.word.length} letras!`); return; }
+
+  attempts.push(guess);
+  updateBoard();
+
+  if(guess===chosen.word){ endGame(true); }
+  else if(attempts.length===maxAttempts){ endGame(false); }
+  else if(attempts.length===3){ hint.textContent = "💡 Dica: " + currentHint; }
+
+  input.value="";
+}
+
+function updateBoard() {
+  const rows = board.children;
+  attempts.forEach((guess,i)=>{
+    const tiles = rows[i].children;
+    [...guess].forEach((letter,j)=>{
+      tiles[j].textContent=letter;
+      if(letter===chosen.word[j]) tiles[j].classList.add("correct");
+      else if(chosen.word.includes(letter)) tiles[j].classList.add("present");
+      else tiles[j].classList.add("absent");
+    });
+  });
+}
+
+function endGame(win){
+  input.disabled=true;
+  endMessage.textContent = win ? " Parabéns! Você acertou!" : ` Você perdeu! Palavra: ${chosen.word}`;
+  menuEnd.classList.add("active");
+}
+
+function nextWord(){ initGame(); }
+
+input.addEventListener("keyup", function(e){ if(e.key==="Enter") submitGuess(); });
+
+initGame();
+</script>
+</body>
+</html>
